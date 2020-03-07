@@ -30,20 +30,33 @@ func init() {
 
 // GetAllComics is a function that fetches all the webcomics from the DB
 func GetAllComics(w http.ResponseWriter, r *http.Request) {
-	var id int
-	var title, author, status string
+	var data []models.Comic = []models.Comic{}
 	rows, err := DB.Query("SELECT * FROM comics;")
 	if err != nil {
+		errMsg := models.ErrResponse{
+			Code:        DBQueryFailed,
+			Description: "Failed querying the database when fetching for all the comics.",
+		}
+		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(404)
-		w.Write([]byte("Error occurred while trying to fetch the data from the database"))
+		json.NewEncoder(w).Encode(errMsg)
 		return
 	}
 	for rows.Next() {
+		var id int
+		var title, author, status string
 		rows.Scan(&id, &title, &author, &status)
-		fmt.Printf("Got: Id: %v, Title: %v, Author: %v, Status: %v\n", id, title, author, status)
+		comic := models.Comic{
+			ID:     id,
+			Title:  title,
+			Author: author,
+			Status: status,
+		}
+		data = append(data, comic)
+		fmt.Printf("Got: Id: %v, Title: %v, Status: %v\n", id, title, status)
 	}
-	w.WriteHeader(200)
-	w.Write([]byte("Found something"))
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(data)
 }
 
 ////////////////// Code to Take Out Starts Here ///////////////////////////
