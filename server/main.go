@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/azukimochi/webcomics-react-golang-postgresql/server/controllers"
 	"github.com/azukimochi/webcomics-react-golang-postgresql/server/routes"
-	_ "github.com/lib/pq"
 )
 
 func main() {
@@ -14,7 +14,7 @@ func main() {
 	// if err != nil {
 	// 	log.Fatal(err)
 	// }
-	// fmt.Println("Started server successfully!")
+	// fmt.Println("Started postgreSQL server successfully!")
 	// defer db.Close()
 
 	// var id int
@@ -33,6 +33,7 @@ func main() {
 	// }
 
 	r := routes.Router()
-	fmt.Println("Starting server on port 5000!")
+	fmt.Println("Starting listening on port 5000!")
+	defer controllers.DB.Close()
 	http.ListenAndServe(":5000", r)
 }

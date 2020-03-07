@@ -1,13 +1,52 @@
 package controllers
 
 import (
+	"database/sql"
 	"encoding/json"
+	"fmt"
+	"log"
 	"net/http"
 	"strconv"
 
 	"github.com/azukimochi/webcomics-react-golang-postgresql/server/models"
 	"github.com/gorilla/mux"
+
+	// PostgreSQL driver
+	_ "github.com/lib/pq"
 )
+
+// DB is the database connection
+var DB *sql.DB
+
+func init() {
+	var err error
+	connStr := "user=azukimochi dbname=test_db host=localhost sslmode=disable"
+	DB, err = sql.Open("postgres", connStr)
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println("Started postgreSQL server successfully!")
+}
+
+// GetAllComics is a function that fetches all the webcomics from the DB
+func GetAllComics(w http.ResponseWriter, r *http.Request) {
+	var id int
+	var title, author, status string
+	rows, err := DB.Query("SELECT * FROM comics;")
+	if err != nil {
+		w.WriteHeader(404)
+		w.Write([]byte("Error occurred while trying to fetch the data from the database"))
+		return
+	}
+	for rows.Next() {
+		rows.Scan(&id, &title, &author, &status)
+		fmt.Printf("Got: Id: %v, Title: %v, Author: %v, Status: %v\n", id, title, author, status)
+	}
+	w.WriteHeader(200)
+	w.Write([]byte("Found something"))
+}
+
+////////////////// Code to Take Out Starts Here ///////////////////////////
 
 var posts []models.Post = []models.Post{}
 
@@ -33,21 +72,21 @@ func GetPost(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(post)
 }
 
-// GetAllPosts is a function for getting all the posts
-func GetAllPosts(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(posts)
-}
+// // GetAllPosts is a function for getting all the posts
+// func GetAllPosts(w http.ResponseWriter, r *http.Request) {
+// 	w.Header().Set("Content-Type", "application/json")
+// 	json.NewEncoder(w).Encode(posts)
+// }
 
-// AddPost is a function for adding a single post
-func AddPost(w http.ResponseWriter, r *http.Request) {
-	var newPost models.Post
-	json.NewDecoder(r.Body).Decode(&newPost)
-	posts = append(posts, newPost)
+// // AddPost is a function for adding a single post
+// func AddPost(w http.ResponseWriter, r *http.Request) {
+// 	var newPost models.Post
+// 	json.NewDecoder(r.Body).Decode(&newPost)
+// 	posts = append(posts, newPost)
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(posts)
-}
+// 	w.Header().Set("Content-Type", "application/json")
+// 	json.NewEncoder(w).Encode(posts)
+// }
 
 // UpdatePost is a function for ovewritting a single post
 func UpdatePost(w http.ResponseWriter, r *http.Request) {

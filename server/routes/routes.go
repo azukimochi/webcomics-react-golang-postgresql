@@ -9,8 +9,8 @@ import (
 func Router() *mux.Router {
 	router := mux.NewRouter()
 
-	router.HandleFunc("/posts", controllers.AddPost).Methods("POST")
-	router.HandleFunc("/posts", controllers.GetAllPosts).Methods("GET")
+	// router.HandleFunc("/webcomic", controllers.AddComic).Methods("POST")
+	router.HandleFunc("/webcomics", controllers.GetAllComics).Methods("GET")
 	router.HandleFunc("/posts/{id}", controllers.GetPost).Methods("GET")
 	router.HandleFunc("/posts/{id}", controllers.UpdatePost).Methods("PUT")
 	router.HandleFunc("/posts/{id}", controllers.PatchPost).Methods("PATCH")
