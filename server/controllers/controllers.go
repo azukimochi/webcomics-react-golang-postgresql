@@ -28,9 +28,20 @@ func init() {
 	fmt.Println("Started postgreSQL server successfully!")
 }
 
-// GetAllComics is a function that fetches all the webcomics from the DB
+// GetComics is a function that passes the request to either SearchForComics or GetAllComics
+func GetComics(w http.ResponseWriter, r *http.Request) {
+	queryParams := r.URL.Query()
+	value, ok := queryParams["keywords"]
+	if ok {
+		SearchForComics(value[0], w, r)
+		return
+	}
+	GetAllComics(w, r)
+}
+
+// GetAllComics ia  function that fetches all the webcomics from the DB
 func GetAllComics(w http.ResponseWriter, r *http.Request) {
-	var data []models.Comic = []models.Comic{}
+	var data []models.Comic
 
 	rows, err := DB.Query("SELECT * FROM comics")
 	if err != nil {
@@ -50,7 +61,37 @@ func GetAllComics(w http.ResponseWriter, r *http.Request) {
 			Status: status,
 		}
 		data = append(data, comic)
-		fmt.Printf("Got: Id: %v, Title: %v, Status: %v\n", id, title, status)
+		fmt.Printf("Results of Global Search: Id: %v, Title: %v, Author: %v, Status: %v\n", id, title, author, status)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(data)
+}
+
+// SearchForComics is a function that gets all the webcomics by filtering the titles by keywords
+func SearchForComics(v string, w http.ResponseWriter, r *http.Request) {
+	var data []models.Comic
+	iLikeOperatorVar := "%" + v + "%"
+
+	rows, err := DB.Query("SELECT * FROM comics WHERE title ILIKE $1", iLikeOperatorVar)
+	if err != nil {
+		errDesc := fmt.Sprintf("Failed querying the database when fetching for comics based on the keywords. %s", err.Error())
+		ServeError(DBQueryFailed, errDesc, 403, w, r)
+		return
+	}
+
+	for rows.Next() {
+		var id int
+		var title, author, status string
+		rows.Scan(&id, &title, &author, &status)
+		comic := models.Comic{
+			ID:     id,
+			Title:  title,
+			Author: author,
+			Status: status,
+		}
+		data = append(data, comic)
+		fmt.Printf("Filtered Search Results: Id: %v, Title: %v, Author: %v, Status: %v\n", id, title, author, status)
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -147,102 +188,4 @@ func DeleteComic(w http.ResponseWriter, r *http.Request) {
 	fmt.Printf("Successfully deleted the record with id %d! %v\n", id, qr)
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(204)
-}
-
-////////////////// Code to Take Out Starts Here ///////////////////////////
-
-var posts []models.Post = []models.Post{}
-
-// GetPost is a function for getting a single post
-func GetPost(w http.ResponseWriter, r *http.Request) {
-	var idParam string = mux.Vars(r)["id"]
-	id, err := strconv.Atoi(idParam)
-
-	if err != nil {
-		w.WriteHeader(400)
-		w.Write([]byte("ID could not be converted to integer"))
-		return
-	}
-
-	if id >= len(posts) {
-		w.WriteHeader(404)
-		w.Write([]byte("No post found with specified id"))
-		return
-	}
-
-	post := posts[id]
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(post)
-}
-
-// UpdatePost is a function for ovewritting a single post
-func UpdatePost(w http.ResponseWriter, r *http.Request) {
-	var idParam string = mux.Vars(r)["id"]
-	id, err := strconv.Atoi(idParam)
-
-	if err != nil {
-		w.WriteHeader(400)
-		w.Write([]byte("ID could not be converted into an integer"))
-		return
-	}
-
-	if id > len(posts) {
-		w.WriteHeader(404)
-		w.Write([]byte("No post found with specified id"))
-		return
-	}
-
-	var updatedPost models.Post
-	json.NewDecoder(r.Body).Decode(&updatedPost)
-	posts[id] = updatedPost
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(updatedPost)
-}
-
-// PatchPost is a function for updating a part of a single post
-func PatchPost(w http.ResponseWriter, r *http.Request) {
-	var idParam string = mux.Vars(r)["id"]
-	id, err := strconv.Atoi(idParam)
-
-	if err != nil {
-		w.WriteHeader(400)
-		w.Write([]byte("ID could not be converted into an integer"))
-		return
-	}
-
-	if id > len(posts) {
-		w.WriteHeader(404)
-		w.Write([]byte("No post found with specified id"))
-		return
-	}
-
-	post := &posts[id]
-	json.NewDecoder(r.Body).Decode(post)
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(post)
-}
-
-// DeletePost is a function for deleting a post
-func DeletePost(w http.ResponseWriter, r *http.Request) {
-	var idParam string = mux.Vars(r)["id"]
-	id, err := strconv.Atoi(idParam)
-
-	if err != nil {
-		w.WriteHeader(400)
-		w.Write([]byte("ID could not be converted into an integer"))
-		return
-	}
-
-	if id > len(posts) {
-		w.WriteHeader(404)
-		w.Write([]byte("No post found with specified id"))
-		return
-	}
-	// Delete the post from the slice. This is from the wiki for slice tricks, as slice doesn't have a delete method
-	// https://github.com/golang/go/wiki/SliceTricks
-	posts = append(posts[:id], posts[id+1:]...)
-
-	w.WriteHeader(200)
 }
