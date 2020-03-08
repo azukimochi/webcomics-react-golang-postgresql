@@ -19,12 +19,12 @@ const (
 )
 
 // ServeError is a function that handles serving up the json response for the errors
-func ServeError(code string, description string, w http.ResponseWriter, r *http.Request) {
+func ServeError(code string, description string, status int, w http.ResponseWriter, r *http.Request) {
 	errMsg := models.ErrResponse{
 		Code:        code,
 		Description: description,
 	}
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(404)
+	w.WriteHeader(status)
 	json.NewEncoder(w).Encode(errMsg)
 }

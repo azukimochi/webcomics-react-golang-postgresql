@@ -35,7 +35,7 @@ func GetAllComics(w http.ResponseWriter, r *http.Request) {
 	rows, err := DB.Query("SELECT * FROM comics")
 	if err != nil {
 		errDesc := fmt.Sprintf("Failed querying the database when fetching for all the comics. %s", err.Error())
-		ServeError(DBQueryFailed, errDesc, w, r)
+		ServeError(DBQueryFailed, errDesc, 403, w, r)
 		return
 	}
 
@@ -66,12 +66,13 @@ func AddComic(w http.ResponseWriter, r *http.Request) {
 		comic.Title, comic.Author, comic.Status)
 	if err != nil {
 		errDesc := fmt.Sprintf("Failed adding the comic into the database. %s", err.Error())
-		ServeError(DBChangeFailed, errDesc, w, r)
+		ServeError(DBChangeFailed, errDesc, 403, w, r)
 		return
 	}
 
 	fmt.Printf("Successfully inserted the record!. Results: %v\n", qr)
 	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
 	json.NewEncoder(w).Encode(comic)
 }
 
@@ -83,7 +84,7 @@ func UpdateComic(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.Atoi(idParam)
 	if err != nil {
 		errDesc := fmt.Sprintf("Failed converting data type of id. %s", err.Error())
-		ServeError(InvalidURLParams, errDesc, w, r)
+		ServeError(InvalidURLParams, errDesc, 422, w, r)
 		return
 	}
 
@@ -93,24 +94,59 @@ func UpdateComic(w http.ResponseWriter, r *http.Request) {
 		updatedComic.Title, updatedComic.Author, updatedComic.Status, id)
 	if err != nil {
 		errDesc := fmt.Sprintf("Failed updating the comic in the database. %s", err.Error())
-		ServeError(DBChangeFailed, errDesc, w, r)
+		ServeError(DBChangeFailed, errDesc, 403, w, r)
 		return
 	}
 
 	rows, err := qr.RowsAffected()
 	if err != nil {
 		errDesc := fmt.Sprintf("Failed getting the number of rows affected. %s", err.Error())
-		ServeError(GeneralDBError, errDesc, w, r)
+		ServeError(GeneralDBError, errDesc, 400, w, r)
 		return
 	}
 	if rows < 1 {
 		errDesc := "The specified record was not found."
-		ServeError(DBChangeFailed, errDesc, w, r)
+		ServeError(DBChangeFailed, errDesc, 404, w, r)
 		return
 	}
+
 	fmt.Printf("Successfully updated the record! Results: %v", qr)
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(updatedComic)
+}
+
+// DeleteComic is a function to delete a comic from the DB
+func DeleteComic(w http.ResponseWriter, r *http.Request) {
+	var idParam string = mux.Vars(r)["id"]
+
+	id, err := strconv.Atoi(idParam)
+	if err != nil {
+		errDesc := fmt.Sprintf("Failed converting data type of id. %s", err.Error())
+		ServeError(InvalidURLParams, errDesc, 422, w, r)
+		return
+	}
+
+	qr, err := DB.Exec("DELETE FROM comics WHERE id = $1", id)
+	if err != nil {
+		errDesc := fmt.Sprintf("Failed to delete the comic from the database. %s", err.Error())
+		ServeError(DBChangeFailed, errDesc, 403, w, r)
+	}
+
+	rows, err := qr.RowsAffected()
+	if err != nil {
+		errDesc := fmt.Sprintf("Failed getting the number of rows affected. %s", err.Error())
+		ServeError(GeneralDBError, errDesc, 400, w, r)
+		return
+	}
+	if rows < 1 {
+		errDesc := "The specified record was not found."
+		ServeError(DBChangeFailed, errDesc, 404, w, r)
+		return
+	}
+
+	fmt.Printf("Successfully deleted the record with id %d! %v\n", id, qr)
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(204)
 }
 
 ////////////////// Code to Take Out Starts Here ///////////////////////////
