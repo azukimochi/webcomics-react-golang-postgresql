@@ -31,12 +31,14 @@ func init() {
 // GetAllComics is a function that fetches all the webcomics from the DB
 func GetAllComics(w http.ResponseWriter, r *http.Request) {
 	var data []models.Comic = []models.Comic{}
+
 	rows, err := DB.Query("SELECT * FROM comics")
 	if err != nil {
-		errDesc := "Failed querying the database when fetching for all the comics. " + err.Error()
-		ServeErrors(DBQueryFailed, errDesc, w, r)
+		errDesc := fmt.Sprintf("Failed querying the database when fetching for all the comics. %s", err.Error())
+		ServeError(DBQueryFailed, errDesc, w, r)
 		return
 	}
+
 	for rows.Next() {
 		var id int
 		var title, author, status string
@@ -50,24 +52,65 @@ func GetAllComics(w http.ResponseWriter, r *http.Request) {
 		data = append(data, comic)
 		fmt.Printf("Got: Id: %v, Title: %v, Status: %v\n", id, title, status)
 	}
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(data)
 }
 
-// AddComic is a function that adds one comic into the DB
+// AddComic is a function that adds a webcomic into the DB
 func AddComic(w http.ResponseWriter, r *http.Request) {
 	var comic models.Comic
 	json.NewDecoder(r.Body).Decode(&comic)
+
 	qr, err := DB.Exec("INSERT INTO comics (title, author, status) VALUES ($1, $2, $3)",
 		comic.Title, comic.Author, comic.Status)
 	if err != nil {
-		errDesc := "Failed adding the comic into the database. " + err.Error()
-		ServeErrors(DBChangeFailed, errDesc, w, r)
+		errDesc := fmt.Sprintf("Failed adding the comic into the database. %s", err.Error())
+		ServeError(DBChangeFailed, errDesc, w, r)
 		return
 	}
+
 	fmt.Printf("Successfully inserted the record!. Results: %v\n", qr)
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(comic)
+}
+
+// UpdateComic is a function that updates a webcomic in the DB
+func UpdateComic(w http.ResponseWriter, r *http.Request) {
+	var idParam string = mux.Vars(r)["id"]
+	var updatedComic models.Comic
+
+	id, err := strconv.Atoi(idParam)
+	if err != nil {
+		errDesc := fmt.Sprintf("Failed converting data type of id. %s", err.Error())
+		ServeError(InvalidURLParams, errDesc, w, r)
+		return
+	}
+
+	json.NewDecoder(r.Body).Decode(&updatedComic)
+
+	qr, err := DB.Exec("UPDATE comics SET title = $1 , author = $2, status = $3 WHERE id = $4",
+		updatedComic.Title, updatedComic.Author, updatedComic.Status, id)
+	if err != nil {
+		errDesc := fmt.Sprintf("Failed updating the comic in the database. %s", err.Error())
+		ServeError(DBChangeFailed, errDesc, w, r)
+		return
+	}
+
+	rows, err := qr.RowsAffected()
+	if err != nil {
+		errDesc := fmt.Sprintf("Failed getting the number of rows affected. %s", err.Error())
+		ServeError(GeneralDBError, errDesc, w, r)
+		return
+	}
+	if rows < 1 {
+		errDesc := "The specified record was not found."
+		ServeError(DBChangeFailed, errDesc, w, r)
+		return
+	}
+	fmt.Printf("Successfully updated the record! Results: %v", qr)
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(updatedComic)
 }
 
 ////////////////// Code to Take Out Starts Here ///////////////////////////

@@ -11,6 +11,7 @@ func Router() *mux.Router {
 
 	router.HandleFunc("/webcomic", controllers.AddComic).Methods("POST")
 	router.HandleFunc("/webcomics", controllers.GetAllComics).Methods("GET")
+	router.HandleFunc("/webcomic/{id}", controllers.UpdateComic).Methods("PUT")
 	router.HandleFunc("/posts/{id}", controllers.GetPost).Methods("GET")
 	router.HandleFunc("/posts/{id}", controllers.UpdatePost).Methods("PUT")
 	router.HandleFunc("/posts/{id}", controllers.PatchPost).Methods("PATCH")
