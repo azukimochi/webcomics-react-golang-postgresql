@@ -9,7 +9,7 @@ import (
 func Router() *mux.Router {
 	router := mux.NewRouter()
 
-	// router.HandleFunc("/webcomic", controllers.AddComic).Methods("POST")
+	router.HandleFunc("/webcomic", controllers.AddComic).Methods("POST")
 	router.HandleFunc("/webcomics", controllers.GetAllComics).Methods("GET")
 	router.HandleFunc("/posts/{id}", controllers.GetPost).Methods("GET")
 	router.HandleFunc("/posts/{id}", controllers.UpdatePost).Methods("PUT")

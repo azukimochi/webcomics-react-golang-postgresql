@@ -31,15 +31,10 @@ func init() {
 // GetAllComics is a function that fetches all the webcomics from the DB
 func GetAllComics(w http.ResponseWriter, r *http.Request) {
 	var data []models.Comic = []models.Comic{}
-	rows, err := DB.Query("SELECT * FROM comics;")
+	rows, err := DB.Query("SELECT * FROM comics")
 	if err != nil {
-		errMsg := models.ErrResponse{
-			Code:        DBQueryFailed,
-			Description: "Failed querying the database when fetching for all the comics.",
-		}
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(404)
-		json.NewEncoder(w).Encode(errMsg)
+		errDesc := "Failed querying the database when fetching for all the comics. " + err.Error()
+		ServeErrors(DBQueryFailed, errDesc, w, r)
 		return
 	}
 	for rows.Next() {
@@ -57,6 +52,22 @@ func GetAllComics(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(data)
+}
+
+// AddComic is a function that adds one comic into the DB
+func AddComic(w http.ResponseWriter, r *http.Request) {
+	var comic models.Comic
+	json.NewDecoder(r.Body).Decode(&comic)
+	qr, err := DB.Exec("INSERT INTO comics (title, author, status) VALUES ($1, $2, $3)",
+		comic.Title, comic.Author, comic.Status)
+	if err != nil {
+		errDesc := "Failed adding the comic into the database. " + err.Error()
+		ServeErrors(DBChangeFailed, errDesc, w, r)
+		return
+	}
+	fmt.Printf("Successfully inserted the record!. Results: %v\n", qr)
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(comic)
 }
 
 ////////////////// Code to Take Out Starts Here ///////////////////////////
@@ -84,22 +95,6 @@ func GetPost(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(post)
 }
-
-// // GetAllPosts is a function for getting all the posts
-// func GetAllPosts(w http.ResponseWriter, r *http.Request) {
-// 	w.Header().Set("Content-Type", "application/json")
-// 	json.NewEncoder(w).Encode(posts)
-// }
-
-// // AddPost is a function for adding a single post
-// func AddPost(w http.ResponseWriter, r *http.Request) {
-// 	var newPost models.Post
-// 	json.NewDecoder(r.Body).Decode(&newPost)
-// 	posts = append(posts, newPost)
-
-// 	w.Header().Set("Content-Type", "application/json")
-// 	json.NewEncoder(w).Encode(posts)
-// }
 
 // UpdatePost is a function for ovewritting a single post
 func UpdatePost(w http.ResponseWriter, r *http.Request) {
