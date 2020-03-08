@@ -8,7 +8,7 @@ type Comic struct {
 	Status string `json:"status,omitempty"`
 }
 
-// ErrResponse is a struct represents error messages sent back to the client
+// ErrResponse is a struct that represents errors that are sent back to the client
 type ErrResponse struct {
 	Code        string `json:"code,omitempty"`
 	Description string `json:"description,omitempty"`

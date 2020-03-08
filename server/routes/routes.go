@@ -5,7 +5,7 @@ import (
 	"github.com/gorilla/mux"
 )
 
-// Router comment
+// Router represents the routes for the API calls this app handles
 func Router() *mux.Router {
 	router := mux.NewRouter()
 
